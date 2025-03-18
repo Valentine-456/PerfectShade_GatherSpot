@@ -11,6 +11,7 @@ GatherSpot is a one-stop platform for discovering and managing events, catering 
 - **Google Maps API:** Used for displaying event locations interactively
 
 ## Project Organization
+- **[Link to Jira](https://perfectshade.atlassian.net/jira/people)**
 - Tasks are assigned based on developers' skill sets
 - **Story Points** are used to estimate task complexity
 - Roles:
