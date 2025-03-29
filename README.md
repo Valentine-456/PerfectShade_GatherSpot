@@ -32,6 +32,23 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+4. To start working on a feature
+```shell
+git checkout -b feature/example
+# work on code...
+git add .
+git commit -m "Example message"
+git push -u origin feature/example
+```
+
+5. Sync with main regularly
+Before starting new work or after someone merges a PR:
+```shell
+git checkout main
+git pull origin main
+```
+
+
 You will be able to accesss the project on [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
 ## Technologies Used
