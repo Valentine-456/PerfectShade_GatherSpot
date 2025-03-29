@@ -1,7 +1,38 @@
 # Perfect Shade team's implementation of GatherSpot
 
 ## Overview
-GatherSpot is a one-stop platform for discovering and managing events, catering to both individuals and organizations. Users can search for events, sign up, create their own, and engage with other users through reviews, ratings, and social interactions.
+GatherSpot is a one-stop platform for discovering and managing eveents, catering to both individuals and organizations. Users can search for events, sign up, create their own, and engage with other users through reviews, ratings, and social interactions.
+
+
+## Start the project
+1. Clone the project from remote repository
+```shell
+git clone https://github.com/Valentine-456/PerfectShade_GatherSpot.git
+cd ./PerfectShade_GatherSpot
+```
+
+2. Set up Python virtual environment
+```shell
+# If you're in another venv or conda env, deactivate it
+deactivate  
+# or `conda deactivate`
+python -m venv .venv
+
+source .venv/Scripts/activate
+# OR for PowerShell:
+# .venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+```
+
+3. Run the project
+```shell
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+You will be able to accesss the project on [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
 ## Technologies Used
 - **Backend:** Python + Django
