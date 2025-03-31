@@ -21,4 +21,5 @@ from PerfectSpot import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('PerfectSpot.urls')),  # or any prefix you'd like
 ]
