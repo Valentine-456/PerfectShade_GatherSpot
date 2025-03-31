@@ -1,15 +1,39 @@
 {% load static %}
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <link rel="stylesheet" href="{% static 'your_app/css/style.css' %}">
+  <meta charset="UTF-8">
+  <title>Sign Up | Gather Spot</title>
+  <link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet'>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 </head>
 <body>
-  <h2>Register</h2>
-  <form method="POST">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Register</button>
-  </form>
-  <script src="{% static 'your_app/js/script.js' %}"></script>
+  <div class="phone-container">
+    <header class="auth-header">
+      <div class="header-logo"></div>
+    </header>
+    <form method="post" class="auth-form register-form">
+      {% csrf_token %}
+      <a href="{% url 'Login' %}" class="back-arrow">←</a>
+      <h2>Sign up</h2>
+      <p class="subtext" id="signup-text">If you are an organization 
+        and want to be verified to
+        get access to advertising
+        and business features,
+        select organization</p>
+      <div class="toggle-buttons">
+        <button class="toggle active" data-type="individual">Individual</button>
+        <button class="toggle" data-type="organization">Organization</button>
+      </div>
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="text" name="full_name" placeholder="Full name" id="full-name">
+        <input type="text" name="org_name" placeholder="Organization name" id="org-name" style="display: none;">
+        <input type="email" name="email" placeholder="abc@email.com" required>
+        <input type="password" name="password" placeholder="Your password" required>
+        <input type="password" name="confirm_password" placeholder="Confirm password" required>
+        <button type="submit" class="primary-btn">SIGN UP <span class="arrow">➜</span></button>
+    </form>
+  </div>
+  <script src="{% static 'js/auth.js' %}"></script>
 </body>
 </html>
