@@ -1,0 +1,190 @@
+body {
+  background:#f1f1f1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  font-family: 'Montserrat';
+}
+
+.phone-container {
+  display:flex;
+  flex-direction: column;
+  max-width: 425px;
+  width: 100%;
+  align-items: center;
+  height: 100vh;
+  background-color:  #F59762;
+}
+
+.auth-header {
+  display: flex;
+  background: linear-gradient(#4A43EC, #2A2686);
+  width: inherit;
+  margin: 0;
+  height: 35vh;
+  border-radius: 0 0 50px 50px;
+  justify-content: center;
+  align-items: center;
+}
+
+.header-logo {
+  width:200px;
+  height: 200px;
+  background-image: url("../images/Logo-BigSquared.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.auth-form {
+  background: white;
+  border-radius: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  margin: auto;
+  padding: 10px;
+  width: calc(100% - 40px);
+}
+
+.register-form {
+  transform: translateY(calc(-25vh));
+  min-height: 90vh;
+}
+
+.auth-form h2 {
+  text-align: center;
+  align-self: center;
+}
+
+.auth-form input {
+  width: calc(100% - 50px);
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
+.primary-btn {
+  background: #4a43ec;
+  color: white;
+  width: min(calc(100% - 200px), 70%);
+  padding: 12px;
+  margin-bottom: 8px;
+  border: none;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.primary-btn .arrow {
+  margin-left: 10px;
+  font-weight: normal;
+}
+
+.auth-options {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+
+.divider {
+  text-align: center;
+  margin: 8px 0;
+  font-weight: bold;
+  align-self: center;
+}
+
+.social-btn {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background: white;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.social-btn .icon {
+  display: inline-block;
+}
+
+.google .icon {
+  background-image: url("../images/google.png");
+}
+
+.facebook .icon {
+  background-image: url("../images/facebook.png");
+}
+
+.toggle-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.toggle {
+  flex: 1;
+  padding: 10px;
+  background: #f1f1f1;
+  border: none;
+  cursor: pointer;
+}
+
+.toggle:first-of-type {
+  border-radius: 20px 0 0 20px;
+}
+
+.toggle:last-of-type {
+  border-radius: 0 20px 20px 0;
+}
+
+.toggle.active {
+  background: #3c1ff4;
+  color: white;
+}
+
+.auth-form .subtext {
+  font-size: 1.2rem;
+  color: #9F9F9F;
+  text-align: center;
+  margin: 0;
+}
+
+.back-arrow {
+  text-decoration: none;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #3D56F0;
+  border: 3px solid #3D56F0;
+  border-radius: 50%;
+  align-self: flex-start;
+  justify-self: flex-start;
+}
+
+@media screen and (max-width: 425px) {
+  .phone-container {
+    max-width: unset;
+  }
+}

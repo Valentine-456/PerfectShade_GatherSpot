@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login | Gather Spot</title>
+  <link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet'>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body>
+  <div class="phone-container">
+    <header class="auth-header">
+      <div class="header-logo"></div>
+    </header>
+      <form method="post" class="auth-form">
+        {% csrf_token %}
+        <h2>Sign in</h2>
+        <input type="email" name="email" placeholder="abc@email.com" required>
+        <input type="password" name="password" placeholder="Your password" required>
+        <button type="submit" class="primary-btn">
+          SIGN IN <span class="arrow">➜</span>
+        </button>
+        <div class="divider">OR</div>
+        <button type="button" class="social-btn google">
+          <div class="icon"></div> Login with Google
+        </button>
+        <button type="button" class="social-btn facebook">
+          <div class="icon"></div> Login with Facebook
+        </button>
+        <p class="auth-footer">Don’t have an account? <a href="{% url 'Register' %}">Sign up</a></p>
+      </form>
+    <script src="{% static 'js/auth.js' %}"></script>
+  </div>
+  
+</body>
+</html>
