@@ -1,7 +1,11 @@
+# PerfectSpot/urls.py
 from django.urls import path
-from PerfectSpot.views.auth import LoginView, RegisterView
+from .views import RegisterView, LoginView, DeleteEventView, CreateEventView
+
 
 urlpatterns = [
-    path("register/", RegisterView.as_view(), name="Register"),
-    path("login/", LoginView.as_view(), name="Login")
+    path('signup', RegisterView.as_view(), name='signup'),
+    path('signin', LoginView.as_view(), name='signin'),
+path('events', CreateEventView.as_view(), name='create_event'),
+    path('events/<int:pk>', DeleteEventView.as_view(), name='delete_event'),
 ]
