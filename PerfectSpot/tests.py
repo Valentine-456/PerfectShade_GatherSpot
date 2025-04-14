@@ -3,7 +3,10 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
 
+from PerfectSpot.models import Event
+
 CustomUser = get_user_model()
+
 
 class AuthTestCase(APITestCase):
     def setUp(self):
@@ -11,7 +14,7 @@ class AuthTestCase(APITestCase):
         Runs before every test. You can create any test data here if needed.
         """
         self.register_url = reverse('signup')  # matches the name in urls.py
-        self.login_url = reverse('signin')     # matches the name in urls.py
+        self.login_url = reverse('signin')  # matches the name in urls.py
 
     def test_register_success(self):
         """
@@ -49,7 +52,7 @@ class AuthTestCase(APITestCase):
         self.assertFalse(response.data['success'])
         self.assertIn('data', response.data)
         self.assertIn('username', response.data['data'])  # e.g., "This field is required."
-        self.assertIn('email', response.data['data'])     # e.g., "This field is required."
+        self.assertIn('email', response.data['data'])  # e.g., "This field is required."
 
     def test_register_fail_duplicate_username(self):
         """
@@ -104,3 +107,63 @@ class AuthTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, response.data)
         self.assertFalse(response.data['success'])
         self.assertIn("Invalid credentials.", response.data['data']['non_field_errors'])
+
+
+class EventTestCase(APITestCase):
+    def setUp(self):
+        # Create test user
+        self.user = CustomUser.objects.create_user(
+            username='tester', email='tester@example.com', password='123456'
+        )
+        # Store the create-event URL
+        self.create_url = reverse('create_event')
+        # Also store the login URL, so we can get a token
+        self.login_url = reverse('signin')
+
+    def _login_and_get_token(self, username, password):
+        """Helper method to sign in with username/password and return JWT token."""
+        response = self.client.post(self.login_url, {
+            "username": username,
+            "password": password
+        }, format='json')
+        # The test expects a token at response.data['data']['token'] – adapt if needed
+        return response.data['data']['token']
+
+    def test_create_event_success(self):
+        # 1. Get a token
+        token = self._login_and_get_token("tester", "123456")
+        # 2. Set the Authorization header
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        # 3. Now do the POST request to create an event
+        data = {
+            "title": "Test Event",
+            "description": "Test Description",
+            "location": "Test Location",
+            "date": "2025-06-15T14:00:00Z",
+            "is_promoted": False
+        }
+        response = self.client.post(self.create_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertTrue(response.data['success'])
+
+        event_id = response.data['data']['id']
+        event_exists = Event.objects.filter(pk=event_id, creator=self.user).exists()
+        self.assertTrue(event_exists)
+
+    def test_delete_event(self):
+        # Create an event in DB
+        token = self._login_and_get_token("tester", "123456")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        event = Event.objects.create(
+            title="Delete Me",
+            description="Desc",
+            location="Place",
+            date="2025-06-15T14:00:00Z",
+            creator=self.user
+        )
+        delete_url = f'/api/events/{event.id}'
+        response = self.client.delete(delete_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertFalse(Event.objects.filter(pk=event.id).exists())

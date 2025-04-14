@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import CustomUser
+from .models import CustomUser, Event
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
@@ -37,3 +37,15 @@ class UserLoginSerializer(serializers.Serializer):
 
         data['user'] = user
         return data
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = ['id', 'title', 'description', 'location', 'date', 'is_promoted']
+        # 'creator' typically is set automatically from the request.user, so we might
+        # not expose it as a writeable field here (depending on your logic).
+
+    def create(self, validated_data):
+        # The 'creator' should be the logged-in user, so we handle that in the view.
+        return super().create(validated_data)
+
