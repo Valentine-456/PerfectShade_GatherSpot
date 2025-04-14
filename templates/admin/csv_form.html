@@ -1,0 +1,18 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="content">
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="default">Upload</button>
+  </form>
+  <p><strong>Note:</strong> CSV should contain the following columns with these formats:</p>
+  <code>
+    title (string),<br>
+    description (string),<br>
+    location (string),<br>
+    date (YYYY-MM-DD HH:MM),<br>
+    creator (username of existing CustomUser),<br>
+    is_promoted (True/False or 1/0)
+  </code>
+</div>
+{% endblock %}
