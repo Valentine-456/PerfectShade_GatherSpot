@@ -34,6 +34,7 @@ class Event(models.Model):
     date = models.DateTimeField()
     creator = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='events')
     is_promoted = models.BooleanField(default=False)
+    attendees = models.ManyToManyField('CustomUser', blank=True, related_name='attending_events')
 
     def __str__(self):
         return self.title

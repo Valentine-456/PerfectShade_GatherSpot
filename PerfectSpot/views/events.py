@@ -2,6 +2,7 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from PerfectSpot.serializers import EventSerializer
 from PerfectSpot.models import Event
 from drf_yasg.utils import swagger_auto_schema
@@ -86,3 +87,20 @@ class DeleteEventView(generics.GenericAPIView):
             "message": "Event deleted successfully.",
             "data": None
         }, status=status.HTTP_200_OK)
+
+
+class RSVPEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            event = Event.objects.get(pk=pk)
+        except Event.DoesNotExist:
+            return Response({"success": False, "message": "Event not found."}, status=404)
+
+        if request.user in event.attendees.all():
+            event.attendees.remove(request.user)
+            return Response({"success": True, "message": "You are no longer attending."}, status=200)
+        else:
+            event.attendees.add(request.user)
+            return Response({"success": True, "message": "You are now attending!"}, status=200)

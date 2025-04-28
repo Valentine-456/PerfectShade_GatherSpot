@@ -20,7 +20,22 @@ class CustomUserAdmin(UserAdmin):
         ('Verification Info', {'fields': ('user_type', 'is_email_verified', 'is_org_verified')}),
         ('Organization Info', {'fields': ('organization_name', 'verification_document')}),
         ('Connections', {'fields': ('friends',)}),
+        ('Event Attendance', {'fields': ('attending_events_display',)}),
     )
+    readonly_fields = ('attending_events_display',)
+
+    def attending_events_display(self, obj):
+        events = obj.attending_events.all()
+        if not events:
+            return "No events"
+
+        links = []
+        for event in events:
+            url = reverse('admin:PerfectSpot_event_change', args=[event.id])  
+            links.append(f'<a href="{url}">{event.title}</a>')
+
+        return format_html('<br>'.join(links))  
+    attending_events_display.short_description = "Attending Events"
 
 admin.site.register(CustomUser, CustomUserAdmin)
 
