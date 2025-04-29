@@ -3,8 +3,9 @@ from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from PerfectSpot.serializers import EventSerializer
-from PerfectSpot.models import Event
+from django.shortcuts import get_object_or_404
+from PerfectSpot.serializers import EventSerializer, ReviewSerializer
+from PerfectSpot.models import Event, Review
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -88,6 +89,84 @@ class DeleteEventView(generics.GenericAPIView):
             "data": None
         }, status=status.HTTP_200_OK)
 
+class EditEventView(generics.GenericAPIView):
+    """
+    PATCH /events/{pk}/edit/  → Edit one or more fields of an event.
+    Only the event's creator or staff may update.
+    """
+    serializer_class    = EventSerializer
+    permission_classes  = [IsAuthenticated]
+    queryset            = Event.objects.all()
+
+    @swagger_auto_schema(
+        operation_description="Edit an existing event; partial update allowed.",
+        request_body=EventSerializer(partial=True),
+        responses={
+            200: openapi.Response(
+                description="Event updated successfully",
+                schema=EventSerializer
+            ),
+            400: "Validation error",
+            403: "Not owner or staff",
+            404: "Event not found"
+        }
+    )
+    def patch(self, request, pk):
+        # 1) Load the event or 404
+        event = get_object_or_404(self.queryset, pk=pk)
+
+        # 2) Permission: only creator or staff
+        if event.creator != request.user and not request.user.is_staff:
+            return Response({
+                "success": False,
+                "message": "You do not have permission to edit this event.",
+                "data": None
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 3) Apply partial update
+        serializer = self.get_serializer(
+            event, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()  # writes changes to the model
+            return Response({
+                "success": True,
+                "message": "Event updated successfully.",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+
+        # 4) Validation errors
+        return Response({
+            "success": False,
+            "message": "Event update failed.",
+            "data": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PromoteEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        event = get_object_or_404(Event, pk=pk)
+
+        # must be the creator & an organization
+        if event.creator != request.user or request.user.user_type != 'organization':
+            return Response({
+                "success": False,
+                "message": "Only the organizing account can promote this event.",
+                "data": None
+            }, status=403)
+
+        event.is_promoted = True
+        event.save(update_fields=['is_promoted'])
+
+        return Response({
+            "success": True,
+            "message": "Event promoted.",
+            "data": {"eventID": event.id, "isPromoted": True}
+        })
+
+
 
 class RSVPEventView(APIView):
     permission_classes = [IsAuthenticated]
@@ -104,3 +183,46 @@ class RSVPEventView(APIView):
         else:
             event.attendees.add(request.user)
             return Response({"success": True, "message": "You are now attending!"}, status=200)
+
+
+class ReviewListView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.filter(event_id=self.kwargs['pk'])
+
+
+# — Add a new review to an event —
+class ReviewCreateView(generics.CreateAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        event = get_object_or_404(Event, pk=self.kwargs['pk'])
+        serializer.save(event=event, reviewer=self.request.user)
+
+
+# — Edit an existing review (only the reviewer can) —
+class ReviewUpdateView(generics.UpdateAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = 'review_id'
+
+    def get_queryset(self):
+        # Only allow the author to edit their review
+        return Review.objects.filter(
+            event_id=self.kwargs['pk'],
+            reviewer=self.request.user
+        )
+
+
+# — Delete a review (only the reviewer can) —
+class ReviewDestroyView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    lookup_url_kwarg = 'review_id'
+
+    def get_queryset(self):
+        return Review.objects.filter(
+            event_id=self.kwargs['pk'],
+            reviewer=self.request.user
+        )
