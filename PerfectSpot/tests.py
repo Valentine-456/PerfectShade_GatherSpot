@@ -3,7 +3,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth import get_user_model
 
-from PerfectSpot.models import Event
+from PerfectSpot.models import Event, Review
 
 CustomUser = get_user_model()
 
@@ -115,10 +115,18 @@ class EventTestCase(APITestCase):
         self.user = CustomUser.objects.create_user(
             username='tester', email='tester@example.com', password='123456'
         )
+
+        # create an organization user
+        self.org_user = CustomUser.objects.create_user(
+            username='org', email='org@example.com', password='orgpass', user_type='organization'
+        )
+
         # Store the create-event URL
         self.create_url = reverse('create_event')
         # Also store the login URL, so we can get a token
         self.login_url = reverse('signin')
+        self.promote_url = lambda pk: reverse('rsvp-event').replace('rsvp', 'promote').rsplit('/', 1)[
+                                          0] + f'{pk}/promote/'
 
     def _login_and_get_token(self, username, password):
         """Helper method to sign in with username/password and return JWT token."""
@@ -167,3 +175,181 @@ class EventTestCase(APITestCase):
         response = self.client.delete(delete_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertFalse(Event.objects.filter(pk=event.id).exists())
+
+    def test_edit_event(self):
+        token = self._login_and_get_token("tester", "123456")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        # First, create an event
+        create = self.client.post(
+            reverse('create_event'),
+            {"title": "Orig", "description": "D", "location": "L",
+             "date": "2025-06-15T14:00:00Z", "is_promoted": False},
+            format='json'
+        )
+        eid = create.data['data']['id']
+
+        # Now edit just the title & date
+        patch = self.client.patch(
+            f'/api/events/{eid}/edit/',
+            {"title": "Updated", "date": "2025-07-01T10:00:00Z"},
+            format='json'
+        )
+        self.assertEqual(patch.status_code, status.HTTP_200_OK)
+        self.assertTrue(patch.data['success'])
+        self.assertEqual(patch.data['data']['title'], "Updated")
+        self.assertEqual(patch.data['data']['date'], "2025-07-01T10:00:00Z")
+
+    def _create_event_as(self, username, password):
+        token = self._login_and_get_token(username, password)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        resp = self.client.post(self.create_url, {
+            "title": "Promo Test",
+            "description": "Testing promotion",
+            "location": "Test Location",
+            "date": "2025-08-01T12:00:00Z",
+            "is_promoted": False
+        }, format='json')
+        return resp.data['data']['id']
+
+    def test_promote_event_success(self):
+        # Org user creates the event
+        event_id = self._create_event_as('org', 'orgpass')
+
+        # Org user promotes it
+        url = f'/api/events/{event_id}/promote/'
+        response = self.client.patch(url, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['data']['eventID'], event_id)
+        self.assertTrue
+
+
+
+
+class ReviewTestCase(APITestCase):
+    def setUp(self):
+        # URLs
+        self.login_url  = reverse('signin')
+        self.create_url = reverse('create_event')
+
+        # 1) Create a reviewer user
+        self.reviewer = CustomUser.objects.create_user(
+            username='reviewer',
+            email='reviewer@example.com',
+            password='reviewpass',
+            user_type='individual'
+        )
+
+        # 2) Log them in & set JWT auth header
+        login_resp = self.client.post(
+            self.login_url,
+            {'username': 'reviewer', 'password': 'reviewpass'},
+            format='json'
+        )
+        token = login_resp.data['data']['token']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+        # 3) Create an event they can review
+        create_resp = self.client.post(
+            self.create_url,
+            {
+                'title': 'ReviewEvent',
+                'description': 'For review tests',
+                'location': 'Loc',
+                'date': '2025-09-01T12:00:00Z',
+                'is_promoted': False
+            },
+            format='json'
+        )
+        self.event_id = create_resp.data['data']['id']
+
+
+    def test_list_reviews_empty(self):
+        """GET /events/{id}/reviews/ should return empty list when no reviews."""
+        url = reverse('list_reviews', args=[self.event_id])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data, [])
+
+
+    def test_add_review(self):
+        """POST /events/{id}/reviews/add should create a new review."""
+        url = reverse('add_review', args=[self.event_id])
+        payload = {'rating': 5, 'comment': 'Excellent!'}
+        resp = self.client.post(url, payload, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        # Payload returned by the serializer:
+        self.assertIn('id', resp.data)
+        self.assertEqual(resp.data['rating'], 5)
+        self.assertEqual(resp.data['comment'], 'Excellent!')
+        self.assertEqual(resp.data['reviewer'], 'reviewer')
+        # And a Review object really exists in the DB:
+        self.assertTrue(
+            Review.objects.filter(
+                event_id=self.event_id,
+                reviewer=self.reviewer,
+                rating=5,
+                comment='Excellent!'
+            ).exists()
+        )
+
+
+    def test_edit_review_success(self):
+        """PATCH /events/{id}/reviews/{rid} should let the author update their review."""
+        # first create one
+        add_url = reverse('add_review', args=[self.event_id])
+        add_resp = self.client.post(add_url, {'rating':4, 'comment':'Good'}, format='json')
+        review_id = add_resp.data['id']
+
+        edit_url = reverse('edit_review', args=[self.event_id, review_id])
+        patch_resp = self.client.patch(edit_url,
+                                      {'rating':3, 'comment':'Okay'},
+                                      format='json')
+        self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(patch_resp.data['rating'], 3)
+        self.assertEqual(patch_resp.data['comment'], 'Okay')
+
+
+    def test_edit_review_forbidden(self):
+        """A different user should not be able to patch someone else’s review."""
+        # create review as reviewer
+        add_url = reverse('add_review', args=[self.event_id])
+        add_resp = self.client.post(add_url, {'rating':4, 'comment':'Good'}, format='json')
+        review_id = add_resp.data['id']
+
+        # create & login as another user
+        other = CustomUser.objects.create_user(
+            username='other',
+            email='other@example.com',
+            password='otherpass',
+            user_type='individual'
+        )
+        other_login = self.client.post(
+            self.login_url,
+            {'username': 'other', 'password': 'otherpass'},
+            format='json'
+        )
+        other_token = other_login.data['data']['token']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {other_token}')
+
+        # attempt to edit – should 404 (not in their queryset)
+        edit_url = reverse('edit_review', args=[self.event_id, review_id])
+        resp = self.client.patch(edit_url, {'rating':1}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+
+    def test_delete_review(self):
+        """DELETE /events/{id}/reviews/{rid}/delete should remove the review."""
+        # create a review
+        add_url = reverse('add_review', args=[self.event_id])
+        add_resp = self.client.post(add_url, {'rating':2, 'comment':'Bad'}, format='json')
+        review_id = add_resp.data['id']
+
+        del_url = reverse('delete_review', args=[self.event_id, review_id])
+        resp = self.client.delete(del_url)
+        # Generic DestroyAPIView returns 204 No Content
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Review.objects.filter(pk=review_id).exists())
+

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import CustomUser, Event
+from .models import CustomUser, Event, Review
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
@@ -53,3 +53,14 @@ class EventSerializer(serializers.ModelSerializer):
     def get_attendees_count(self, obj):
         return obj.attendees.count()
 
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    reviewer = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ['id', 'rating', 'comment', 'created_at', 'reviewer']
+        read_only_fields = ['id', 'created_at', 'reviewer']
+
+# (your existing EventSerializer stays here)
