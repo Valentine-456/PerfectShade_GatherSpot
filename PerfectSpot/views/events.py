@@ -19,11 +19,21 @@ class CreateEventView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]  # Must be logged in to create an event
 
     @swagger_auto_schema(
+        operation_description="List all events for the home screen.",
+        responses={200: EventSerializer(many=True)}
+    )
+    def get(self, request, *args, **kwargs):
+        events = Event.objects.all().order_by('date')
+        serializer = self.get_serializer(events, many=True)
+        return Response({
+            "success": True,
+            "message": "Events retrieved successfully.",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
         operation_description="Create a new event. User must be authenticated.",
-        responses={
-            201: "Event created successfully",
-            400: "Validation error"
-        }
+        responses={201: "Event created successfully", 400: "Validation error"}
     )
 
     def post(self, request, *args, **kwargs):
