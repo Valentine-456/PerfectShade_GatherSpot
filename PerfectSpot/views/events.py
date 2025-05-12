@@ -63,6 +63,23 @@ class DeleteEventView(generics.GenericAPIView):
             403: "No permission"
         }
     )
+    def get(self, request, pk):
+        event = get_object_or_404(self.queryset, pk=pk)
+        data = self.get_serializer(event).data
+        return Response({
+            "success": True,
+            "message": "Event retrieved successfully.",
+            "data": data
+        }, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        operation_description="Delete an event by ID. Only the creator or staff can delete.",
+        responses={
+            200: "Event deleted successfully",
+            403: "No permission",
+            404: "Event not found"
+        }
+    )
 
     def delete(self, request, pk):
         try:

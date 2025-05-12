@@ -225,7 +225,24 @@ class EventTestCase(APITestCase):
         self.assertEqual(response.data['data']['eventID'], event_id)
         self.assertTrue
 
+    def test_get_event_details(self):
+        # 1) create an event
+        token = self._login_and_get_token("tester", "123456")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        create = self.client.post(
+            reverse('create_event'),
+            {"title": "DetailMe", "description": "Desc", "location": "Loc",
+             "date": "2025-06-15T14:00:00Z", "is_promoted": False},
+            format='json'
+        )
+        eid = create.data['data']['id']
 
+        # 2) fetch it
+        detail = self.client.get(f'/api/events/{eid}')
+        self.assertEqual(detail.status_code, status.HTTP_200_OK)
+        self.assertTrue(detail.data['success'])
+        self.assertEqual(detail.data['data']['title'], "DetailMe")
+        self.assertIn('attendees_count', detail.data['data'])
 
 
 class ReviewTestCase(APITestCase):
