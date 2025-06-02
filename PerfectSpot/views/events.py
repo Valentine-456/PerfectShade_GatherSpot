@@ -64,13 +64,16 @@ class CreateEventView(generics.GenericAPIView):
 class DeleteEventView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]  # Must be logged in
     queryset = Event.objects.all()
+    serializer_class = EventSerializer
 
     @swagger_auto_schema(
-        operation_description="Delete an event by ID. Only the creator or staff can delete.",
+        operation_description="Get details for an event.",
         responses={
-            200: "Event deleted successfully",
-            404: "Event not found",
-            403: "No permission"
+            200: openapi.Response(
+                description="Event retrieved",
+                schema=EventSerializer
+            ),
+            404: "Event not found"
         }
     )
     def get(self, request, pk):
