@@ -239,10 +239,19 @@ class EventTestCase(APITestCase):
 
         # 2) fetch it
         detail = self.client.get(f'/api/events/{eid}')
+        data = detail.data['data']
         self.assertEqual(detail.status_code, status.HTTP_200_OK)
         self.assertTrue(detail.data['success'])
         self.assertEqual(detail.data['data']['title'], "DetailMe")
         self.assertIn('attendees_count', detail.data['data'])
+        # Now, also check preview_url and is_owner exist:
+        self.assertIn('preview_url', data)
+        self.assertIn('is_owner', data)
+        # For a newly created event by this user, is_owner should be True:
+        self.assertTrue(data['is_owner'])
+        # Since we didn’t set preview_url, it should be "" or None:
+        self.assertIn(data['preview_url'], [None, ""])
+
 
 
 class ReviewTestCase(APITestCase):

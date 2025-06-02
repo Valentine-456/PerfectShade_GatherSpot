@@ -36,6 +36,13 @@ class Event(models.Model):
     is_promoted = models.BooleanField(default=False)
     attendees = models.ManyToManyField('CustomUser', blank=True, related_name='attending_events')
 
+    preview_url = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="URL of the event’s preview image or page"
+    )
+
     def __str__(self):
         return self.title
 

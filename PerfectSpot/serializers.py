@@ -40,11 +40,29 @@ class UserLoginSerializer(serializers.Serializer):
 
 class EventSerializer(serializers.ModelSerializer):
     attendees_count = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
     class Meta:
         model = Event
-        fields = ['id', 'title', 'description', 'location', 'date', 'is_promoted', 'attendees_count']
+        fields = ['id',
+                  'title',
+                  'description',
+                  'location',
+                  'date',
+                  'is_promoted',
+                  'attendees_count',
+                  'preview_url',
+                  'is_owner']
         # 'creator' typically is set automatically from the request.user, so we might
         # not expose it as a writeable field here (depending on your logic).
+
+        def get_is_owner(self, obj):
+
+            #Returns True if the request.user is the creator of this event.
+
+            request = self.context.get('request')
+            if not request or not hasattr(request, 'user'):
+                return False
+            return obj.creator == request.user
 
     def create(self, validated_data):
         # The 'creator' should be the logged-in user, so we handle that in the view.

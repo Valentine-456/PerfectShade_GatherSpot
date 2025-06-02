@@ -24,7 +24,7 @@ class CreateEventView(generics.GenericAPIView):
     )
     def get(self, request, *args, **kwargs):
         events = Event.objects.all().order_by('date')
-        serializer = self.get_serializer(events, many=True)
+        serializer = self.get_serializer(events, many=True)  # depth + context is handled automatically
         return Response({
             "success": True,
             "message": "Events retrieved successfully.",
@@ -33,25 +33,30 @@ class CreateEventView(generics.GenericAPIView):
 
     @swagger_auto_schema(
         operation_description="Create a new event. User must be authenticated.",
-        responses={201: "Event created successfully", 400: "Validation error"}
+        request_body=EventSerializer,  # so Swagger knows about preview_url, etc.
+        responses={
+            201: EventSerializer,
+            400: "Validation error"
+        }
     )
-
     def post(self, request, *args, **kwargs):
         # The request.user will be the 'creator' of the event
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            event = serializer.save(creator=request.user)  # pass the creator
+            # Pass in creator=request.user; since preview_url is in serializer.fields,
+            # it will be picked up from serializer.validated_data if the client sent it.
+            event = serializer.save(creator=request.user)
+
+            # Re-serialize the newly created event so that preview_url AND is_owner appear
+            full_serializer = EventSerializer(
+                event,
+                context={"request": request}  # ensures `get_is_owner()` works
+            )
+
             return Response({
                 "success": True,
                 "message": "Event created successfully.",
-                "data": {
-                    "id": event.id,
-                    "title": event.title,
-                    "description": event.description,
-                    "location": event.location,
-                    "date": event.date,
-                    "is_promoted": event.is_promoted
-                }
+                "data": full_serializer.data
             }, status=status.HTTP_201_CREATED)
 
         return Response({
