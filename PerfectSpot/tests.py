@@ -113,7 +113,18 @@ class EventTestCase(APITestCase):
     def setUp(self):
         # Create test user
         self.user = CustomUser.objects.create_user(
-            username='tester', email='tester@example.com', password='123456'
+            username='tester',
+            email='tester@example.com',
+            password='123456',
+            user_type='individual'
+        )
+
+        # Create a second user
+        self.other_user = CustomUser.objects.create_user(
+            username='other',
+            email='other@example.com',
+            password='otherpass',
+            user_type='individual'
         )
 
         # create an organization user
@@ -137,6 +148,101 @@ class EventTestCase(APITestCase):
         # The test expects a token at response.data['data']['token'] – adapt if needed
         return response.data['data']['token']
 
+    def test_list_events_includes_is_owner(self):
+        """
+        - tester creates Event A
+        - other_user creates Event B
+        - When tester GET /events, Event A.is_owner == True, Event B.is_owner == False
+        """
+        # 1) tester logs in & creates Event A
+        tester_token = self._login_and_get_token('tester', '123456')
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {tester_token}')
+
+        create_resp_A = self.client.post(self.create_url, {
+            "title": "Event A",
+            "description": "Desc A",
+            "location": "Loc A",
+            "date": "2025-12-01T10:00:00Z",
+            "is_promoted": False,
+            "latitude": 10.0,
+            "longitude": 20.0,
+            "image_url": "https://example.com/A.png"
+        }, format='json')
+        event_id_A = create_resp_A.data['data']['id']
+
+        # 2) other_user logs in & creates Event B
+        self.client.credentials()  # clear previous creds
+        other_token = self._login_and_get_token('other', 'otherpass')
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {other_token}')
+
+        create_resp_B = self.client.post(self.create_url, {
+            "title": "Event B",
+            "description": "Desc B",
+            "location": "Loc B",
+            "date": "2025-12-02T11:00:00Z",
+            "is_promoted": False,
+            "latitude": 30.0,
+            "longitude": 40.0,
+            "image_url": "https://example.com/B.png"
+        }, format='json')
+        event_id_B = create_resp_B.data['data']['id']
+
+        # 3) tester GET /events again
+        self.client.credentials()  # clear creds to simulate unauthenticated
+        # First, test unauthenticated sees is_owner=False for both
+        unauth_resp = self.client.get(self.create_url)
+        self.assertEqual(unauth_resp.status_code, status.HTTP_200_OK)
+        for ev in unauth_resp.data['data']:
+            self.assertFalse(ev['is_owner'])
+
+        # 4) tester GET /events while authenticated
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {tester_token}')
+        auth_resp = self.client.get(self.create_url)
+        self.assertEqual(auth_resp.status_code, status.HTTP_200_OK)
+        data = auth_resp.data['data']
+
+        # Find the two events
+        evA = next(item for item in data if item['id'] == event_id_A)
+        evB = next(item for item in data if item['id'] == event_id_B)
+
+        self.assertTrue(evA['is_owner'], "Tester should be owner of Event A")
+        self.assertFalse(evB['is_owner'], "Tester should not be owner of Event B")
+
+    def test_get_event_detail_includes_is_owner(self):
+        """
+        - tester creates Event C
+        - GET /events/{C} as tester: is_owner=true
+        - GET /events/{C} as other_user: is_owner=false
+        """
+        tester_token = self._login_and_get_token('tester', '123456')
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {tester_token}')
+
+        create_resp = self.client.post(self.create_url, {
+            "title": "Event C",
+            "description": "Desc C",
+            "location": "Loc C",
+            "date": "2025-12-03T12:00:00Z",
+            "is_promoted": False,
+            "latitude": 50.0,
+            "longitude": 60.0,
+            "image_url": "https://example.com/C.png"
+        }, format='json')
+        event_id_C = create_resp.data['data']['id']
+
+        # As tester (creator)
+        detail_url = f'/api/events/{event_id_C}'
+        detail_resp_1 = self.client.get(detail_url)
+        self.assertEqual(detail_resp_1.status_code, status.HTTP_200_OK)
+        self.assertTrue(detail_resp_1.data['data']['is_owner'])
+
+        # As other_user
+        self.client.credentials()  # clear
+        other_token = self._login_and_get_token('other', 'otherpass')
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {other_token}')
+        detail_resp_2 = self.client.get(detail_url)
+        self.assertEqual(detail_resp_2.status_code, status.HTTP_200_OK)
+        self.assertFalse(detail_resp_2.data['data']['is_owner'])
+
     def test_create_event_success(self):
         # 1. Get a token
         token = self._login_and_get_token("tester", "123456")
@@ -158,6 +264,78 @@ class EventTestCase(APITestCase):
         event_id = response.data['data']['id']
         event_exists = Event.objects.filter(pk=event_id, creator=self.user).exists()
         self.assertTrue(event_exists)
+
+    def test_create_event_with_coordinates_and_image(self):
+        # Log in & get token
+        token = self._login_and_get_token("tester", "123456")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        payload = {
+            "title": "Geo Event",
+            "description": "Has coords and image",
+            "location": "Some Park",
+            "date": "2025-10-05T09:00:00Z",
+            "is_promoted": False,
+            "latitude": 51.5074,
+            "longitude": -0.1278,
+            "image_url": "https://example.com/poster.png"
+        }
+        response = self.client.post(self.create_url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertTrue(response.data['success'])
+
+        data = response.data['data']
+        self.assertEqual(data['latitude'], 51.5074)
+        self.assertEqual(data['longitude'], -0.1278)
+        self.assertEqual(data['image_url'], "https://example.com/poster.png")
+
+        # Check in DB
+        from PerfectSpot.models import Event
+        ev = Event.objects.get(pk=data['id'])
+        self.assertAlmostEqual(ev.latitude, 51.5074)
+        self.assertAlmostEqual(ev.longitude, -0.1278)
+        self.assertEqual(ev.image_url, "https://example.com/poster.png")
+
+    def test_edit_event_coordinates_and_image(self):
+        # Create first
+        token = self._login_and_get_token("tester", "123456")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        create_resp = self.client.post(
+            reverse('create_event'),
+            {
+                "title": "Old",
+                "description": "OldDesc",
+                "location": "OldLoc",
+                "date": "2025-11-01T08:00:00Z",
+                "is_promoted": False,
+                "latitude": 10.0,
+                "longitude": 10.0,
+                "image_url": "https://example.com/old.png"
+            }, format='json'
+        )
+        eid = create_resp.data['data']['id']
+
+        # Now patch just those fields
+        patch_resp = self.client.patch(
+            f'/api/events/{eid}/edit/',
+            {
+                "latitude": 40.7128,
+                "longitude": -74.0060,
+                "image_url": "https://example.com/new.png"
+            },
+            format='json'
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(patch_resp.data['success'])
+        updated = patch_resp.data['data']
+        self.assertEqual(updated['latitude'], 40.7128)
+        self.assertEqual(updated['longitude'], -74.0060)
+        self.assertEqual(updated['image_url'], "https://example.com/new.png")
+
+        ev = Event.objects.get(pk=eid)
+        self.assertAlmostEqual(ev.latitude, 40.7128)
+        self.assertAlmostEqual(ev.longitude, -74.0060)
+        self.assertEqual(ev.image_url, "https://example.com/new.png")
 
     def test_delete_event(self):
         # Create an event in DB

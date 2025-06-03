@@ -34,6 +34,10 @@ class Event(models.Model):
     date = models.DateTimeField()
     creator = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='events')
     is_promoted = models.BooleanField(default=False)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    image_url = models.URLField(max_length=500, null=True, blank=True)
+
     attendees = models.ManyToManyField('CustomUser', blank=True, related_name='attending_events')
 
     def __str__(self):

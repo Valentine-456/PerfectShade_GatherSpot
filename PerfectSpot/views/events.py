@@ -49,6 +49,9 @@ class CreateEventView(generics.GenericAPIView):
                     "title": event.title,
                     "description": event.description,
                     "location": event.location,
+                    "latitude": event.latitude,
+                    "longitude": event.longitude,
+                    "image_url": event.image_url,
                     "date": event.date,
                     "is_promoted": event.is_promoted
                 }
