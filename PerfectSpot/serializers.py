@@ -39,30 +39,34 @@ class UserLoginSerializer(serializers.Serializer):
         return data
 
 class EventSerializer(serializers.ModelSerializer):
+    preview_url = serializers.CharField(allow_blank=True, required=False)
     attendees_count = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField()
+
     class Meta:
         model = Event
-        fields = ['id',
-                  'title',
-                  'description',
-                  'location',
-                  'date',
-                  'is_promoted',
-                  'attendees_count',
-                  'preview_url',
-                  'is_owner']
-        # 'creator' typically is set automatically from the request.user, so we might
-        # not expose it as a writeable field here (depending on your logic).
+        fields = [
+            'id',
+            'title',
+            'description',
+            'location',
+            'date',
+            'is_promoted',
+            'creator',
+            'attendees_count',
+            'preview_url',
+            'is_owner',
+        ]
+        read_only_fields = ['creator', 'is_owner']
 
-        def get_is_owner(self, obj):
-
-            #Returns True if the request.user is the creator of this event.
-
-            request = self.context.get('request')
-            if not request or not hasattr(request, 'user'):
-                return False
-            return obj.creator == request.user
+    def get_is_owner(self, obj):
+        """
+        Return True if request.user is the creator of this Event.
+        """
+        request = self.context.get('request', None)
+        if not request or not hasattr(request, 'user'):
+            return False
+        return obj.creator == request.user
 
     def create(self, validated_data):
         # The 'creator' should be the logged-in user, so we handle that in the view.
@@ -74,7 +78,7 @@ class EventSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    reviewer = serializers.StringRelatedField(read_only=True)
+    reviewer = serializers.CharField(source='reviewer.username', read_only=True)
 
     class Meta:
         model = Review
