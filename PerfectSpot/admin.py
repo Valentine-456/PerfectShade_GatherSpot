@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Event, Review, OrganizationProxy, IndividualUserProxy
+from .models import CustomUser, Event, Interest, Review, OrganizationProxy, IndividualUserProxy
 from django import forms
 from django.shortcuts import render, redirect
 from django.urls import path
@@ -19,9 +19,10 @@ class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
         ('Verification Info', {'fields': ('user_type', 'is_email_verified', 'is_org_verified')}),
         ('Organization Info', {'fields': ('organization_name', 'verification_document')}),
-        ('Connections', {'fields': ('friends',)}),
+        ('Connections', {'fields': ('friends','interests')}),
         ('Event Attendance', {'fields': ('attending_events_display',)}),
     )
+    filter_horizontal = ('friends', 'interests')  # Makes interests (and friends) multi-select UI nicer
     readonly_fields = ('attending_events_display',)
 
     def attending_events_display(self, obj):
@@ -154,6 +155,9 @@ class IndividualUserAdmin(UserAdmin):
     def has_add_permission(self, request):
         return False  
 
+@admin.register(Interest)
+class InterestAdmin(admin.ModelAdmin):
+    list_display = ['name']
 # csv import class
 class CsvImportForm(forms.Form):
     csv_file = forms.FileField()

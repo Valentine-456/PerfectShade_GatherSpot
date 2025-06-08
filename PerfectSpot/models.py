@@ -1,9 +1,7 @@
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 from django.db import models
 
-# general custom user to avoid using django one for future implementations with no problems
-# users are distinguished through types of users, is_org_verified, etc
-# this way the db will contain everything and the admin will be able to filter what they need
 
 class CustomUser(AbstractUser):
     USER_TYPE_CHOICES = (
@@ -22,9 +20,15 @@ class CustomUser(AbstractUser):
     )
 
     friends = models.ManyToManyField('self', blank=True, symmetrical=True)
+    interests = models.ManyToManyField("Interest", blank=True)
 
     def __str__(self):
         return self.username
+    
+class Interest(models.Model):
+    name = models.CharField(max_length=50)
+    def __str__(self):
+        return self.name 
 
 # event model roughly
 class Event(models.Model):
@@ -86,3 +90,13 @@ class IndividualUserProxy(CustomUser):
         verbose_name = 'Individual User'
         verbose_name_plural = 'Individual Users'
 
+class FriendRequest(models.Model):
+    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sent_requests", on_delete=models.CASCADE)
+    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="received_requests", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('from_user', 'to_user')
+
+    def __str__(self):
+        return f"{self.from_user} → {self.to_user}"

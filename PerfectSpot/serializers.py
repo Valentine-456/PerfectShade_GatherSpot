@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import CustomUser, Event, Review
+from .models import CustomUser, Event, FriendRequest, Review
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
@@ -75,4 +75,69 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ['id', 'rating', 'comment', 'created_at', 'reviewer']
         read_only_fields = ['id', 'created_at', 'reviewer']
 
+class UserSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username']
 # (your existing EventSerializer stays here)
+class FriendRequestSerializer(serializers.ModelSerializer):
+    from_user = UserSummarySerializer(read_only=True)
+    to_user = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())
+    class Meta:
+        model = FriendRequest
+        fields = ['id', 'from_user', 'to_user', 'created_at']
+
+class FriendshipStatusSerializer(serializers.Serializer):
+    friends = UserSummarySerializer(many=True)
+    incoming = FriendRequestSerializer(many=True)
+    status = serializers.ChoiceField(choices=['none', 'sent', 'received', 'friends'])
+    request_id = serializers.IntegerField(required=False)
+    
+class SearchResultUserSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'status']
+
+    def get_status(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or not request.user.is_authenticated:
+            return "none"
+
+        user = request.user
+
+        if obj == user:
+            return "self"
+
+        if user.friends.filter(id=obj.id).exists():
+            return "friends"
+        if FriendRequest.objects.filter(from_user=user, to_user=obj).exists():
+            return "sent"
+        if FriendRequest.objects.filter(from_user=obj, to_user=user).exists():
+            return "received"
+
+        return "none"
+    
+class FriendDataResponseSerializer(serializers.ModelSerializer):
+    login = serializers.SerializerMethodField()
+    interests = serializers.SlugRelatedField(
+        many=True,
+        read_only=True,
+        slug_field='name'
+    )
+    friends = UserSummarySerializer(many=True, read_only=True)
+    events_count = serializers.SerializerMethodField()
+    
+    incoming = FriendRequestSerializer(source='received_requests', many=True, read_only=True)
+    outgoing = FriendRequestSerializer(source='sent_requests', many=True, read_only=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'login', 'interests', 'friends', 'events_count', 'incoming', 'outgoing', ]
+        # Add any other fields you use in your profile frontend
+    def get_login(self, obj):
+        return obj.username
+
+    def get_events_count(self, obj):
+        return obj.events.count()

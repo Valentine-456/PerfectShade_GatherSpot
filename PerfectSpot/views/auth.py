@@ -1,9 +1,6 @@
 from rest_framework import status, generics
 from rest_framework.response import Response
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 from PerfectSpot.serializers import UserRegistrationSerializer, UserLoginSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
