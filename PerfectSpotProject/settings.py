@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-$zv4)o%(kel88i+=3ps+ua0=tr1%rt(kccv6h*xnkpz+mclv)(
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+APPEND_SLASH = True
 
 # Application definition
 
@@ -150,3 +150,4 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'PerfectSpot.CustomUser'
+
