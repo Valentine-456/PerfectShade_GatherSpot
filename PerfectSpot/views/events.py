@@ -227,19 +227,25 @@ class PromoteEventView(APIView):
 
 class RSVPEventView(APIView):
     permission_classes = [IsAuthenticated]
-
     def post(self, request, pk):
+        if request.user.user_type != 'individual':
+            return Response({
+
+              "success": False,
+
+              "message": "Only individual users can RSVP to events."
+    }, status=403)
         try:
-            event = Event.objects.get(pk=pk)
+         event = Event.objects.get(pk=pk)
         except Event.DoesNotExist:
-            return Response({"success": False, "message": "Event not found."}, status=404)
+         return Response({"success": False, "message": "Event not found."}, status=404)
 
         if request.user in event.attendees.all():
-            event.attendees.remove(request.user)
-            return Response({"success": True, "message": "You are no longer attending."}, status=200)
+         event.attendees.remove(request.user)
+         return Response({"success": True, "message": "You are no longer attending."}, status=200)
         else:
-            event.attendees.add(request.user)
-            return Response({"success": True, "message": "You are now attending!"}, status=200)
+         event.attendees.add(request.user)
+         return Response({"success": True, "message": "You are now attending!"}, status=200)
 
 
 class ReviewListView(generics.ListAPIView):
