@@ -18,12 +18,36 @@ class CreateEventView(generics.GenericAPIView):
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]  # Must be logged in to create an event
 
+    # Allow unauthenticated GETs but require auth for anything else
+    def get_permissions(self):
+        from rest_framework.permissions import AllowAny
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [perm() for perm in self.permission_classes]
+
     @swagger_auto_schema(
         operation_description="List all events for the home screen.",
         responses={200: EventSerializer(many=True)}
     )
     def get(self, request, *args, **kwargs):
-        events = Event.objects.all().order_by('date')
+        # 1) Base queryset
+        qs = Event.objects.all()
+
+        # 2) Title-prefix filter (case-insensitive)
+        title_prefix = request.query_params.get("title")
+        if title_prefix:
+            qs = qs.filter(title__istartswith=title_prefix)
+
+        # 3) Promoted filter
+        promoted_str = request.query_params.get("promoted")
+        if promoted_str is not None:
+            promoted = promoted_str.lower() in ("1", "true", "yes")
+            qs = qs.filter(is_promoted=promoted)
+
+        # 4) Apply your existing ordering
+        events = qs.order_by('date')
+
+        # 5) Serialize & return
         serializer = self.get_serializer(events, many=True)
         return Response({
             "success": True,
@@ -35,7 +59,6 @@ class CreateEventView(generics.GenericAPIView):
         operation_description="Create a new event. User must be authenticated.",
         responses={201: "Event created successfully", 400: "Validation error"}
     )
-
     def post(self, request, *args, **kwargs):
         # The request.user will be the 'creator' of the event
         serializer = self.get_serializer(data=request.data)
@@ -62,6 +85,7 @@ class CreateEventView(generics.GenericAPIView):
             "message": "Event creation failed.",
             "data": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class DeleteEventView(generics.GenericAPIView):
