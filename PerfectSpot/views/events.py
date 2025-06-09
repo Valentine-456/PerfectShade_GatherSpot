@@ -229,7 +229,6 @@ class PromoteEventView(APIView):
 
 class RSVPEventView(APIView):
     permission_classes = [IsAuthenticated]
-
     def post(self, request, pk):
         event = get_object_or_404(Event, pk=pk)
 
@@ -241,6 +240,11 @@ class RSVPEventView(APIView):
             event.attendees.add(request.user)
             is_attending = True
             message = "You are now attending!"
+            
+        if request.user.user_type != 'individual':
+            return Response({
+              "success": False,
+              "message": "Only individual users can RSVP to events."}, status=403)
 
         return Response({
             "success": True,

@@ -4,11 +4,17 @@ from django.db import models
 
 
 class CustomUser(AbstractUser):
-    USER_TYPE_CHOICES = (
-        ('individual', 'Individual'),
-        ('organization', 'Organization'),
+    INDIVIDUAL = 'individual'
+    ORGANIZATION = 'organization'
+    USER_TYPE_CHOICES = [
+        (INDIVIDUAL, 'Individual'),
+        (ORGANIZATION, 'Organization'),
+    ]
+    user_type = models.CharField(
+        max_length=20,
+        choices=USER_TYPE_CHOICES,
+        default=INDIVIDUAL,
     )
-    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES)
     is_email_verified = models.BooleanField(default=False)
 
     # Organization-specific
