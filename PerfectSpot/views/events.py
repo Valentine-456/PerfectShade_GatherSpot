@@ -9,9 +9,11 @@ from PerfectSpot.models import Event, Review
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework_simplejwt.tokens import RefreshToken
+import stripe
+from django.conf import settings
 
 
-
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class CreateEventView(generics.GenericAPIView):
@@ -228,25 +230,30 @@ class PromoteEventView(APIView):
 class RSVPEventView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request, pk):
-        if request.user.user_type != 'individual':
-            return Response({
-
-              "success": False,
-
-              "message": "Only individual users can RSVP to events."
-    }, status=403)
-        try:
-         event = Event.objects.get(pk=pk)
-        except Event.DoesNotExist:
-         return Response({"success": False, "message": "Event not found."}, status=404)
+        event = get_object_or_404(Event, pk=pk)
 
         if request.user in event.attendees.all():
-         event.attendees.remove(request.user)
-         return Response({"success": True, "message": "You are no longer attending."}, status=200)
+            event.attendees.remove(request.user)
+            is_attending = False
+            message = "You are no longer attending."
         else:
-         event.attendees.add(request.user)
-         return Response({"success": True, "message": "You are now attending!"}, status=200)
+            event.attendees.add(request.user)
+            is_attending = True
+            message = "You are now attending!"
+            
+        if request.user.user_type != 'individual':
+            return Response({
+              "success": False,
+              "message": "Only individual users can RSVP to events."}, status=403)
 
+        return Response({
+            "success": True,
+            "message": message,
+            "data": {
+                "attendees_count": event.attendees.count(),
+                "is_attending": is_attending,
+            }
+        }, status=200)
 
 class ReviewListView(generics.ListAPIView):
     serializer_class = ReviewSerializer
@@ -289,3 +296,51 @@ class ReviewDestroyView(generics.DestroyAPIView):
             event_id=self.kwargs['pk'],
             reviewer=self.request.user
         )
+        
+class CreateStripeCheckoutSession(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if user in event.attendees.all():
+            return Response({"success": False, "message": "Already attending."}, status=400)
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            mode="payment",
+            line_items=[{
+                "price_data": {
+                "currency": "usd",
+                "unit_amount": 1500,
+                "product_data": {"name": f"Ticket for {event.title}"},
+            },
+                "quantity": 1,
+    }],
+    success_url = f"{settings.FRONTEND_URL}/event-success/{event.id}?session_id={{CHECKOUT_SESSION_ID}}",
+    cancel_url=f"{settings.FRONTEND_URL}/events/{event.id}",
+    metadata={"user_id": user.id},
+)
+
+        return Response({"id": session.id})
+    
+class ConfirmCheckoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        session_id = request.data.get("session_id")
+        if not session_id:
+            return Response({"error": "Missing session ID"}, status=400)
+
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            if session.payment_status != "paid":
+                return Response({"success": False, "message": "Payment not completed"}, status=400)
+
+            event = get_object_or_404(Event, pk=pk)
+            event.attendees.add(request.user)
+
+            return Response({"success": True, "message": "You are now attending!"})
+        except Exception as e:
+            return Response({"success": False, "error": str(e)}, status=400)
