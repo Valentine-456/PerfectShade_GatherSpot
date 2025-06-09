@@ -9,7 +9,7 @@ from rest_framework.routers import DefaultRouter
 from PerfectSpot.views.friends import FriendshipStatusView, UserProfileAPIView, my_friends, unfriend
 from PerfectSpot.views.friends import FriendRequestViewSet
 from PerfectSpot.views.user_search import UserSearchView
-
+from PerfectSpot.views.auth import GoogleLoginView
 router = DefaultRouter()
 router.register(r"friend-requests", FriendRequestViewSet, basename="friend-request")
 
@@ -22,6 +22,7 @@ urlpatterns = [
     path('events/<int:pk>/rsvp/', RSVPEventView.as_view(), name='rsvp-event'),
     path('events/<int:pk>/edit/', EditEventView.as_view(), name='edit_event'),
     path('events/<int:pk>/promote/', PromoteEventView.as_view(), name='promote_event'),
+    path("google-signin", GoogleLoginView.as_view(), name="google-signin"),
     path(
         'events/<int:pk>/reviews/',
         ReviewListView.as_view(),
