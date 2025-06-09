@@ -41,16 +41,21 @@ class UserLoginSerializer(serializers.Serializer):
 class EventSerializer(serializers.ModelSerializer):
     attendees_count = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField()
+    is_attending = serializers.SerializerMethodField()
     class Meta:
         model = Event
         fields = ['id', 'title', 'description', 'location', 'date', 'is_promoted','latitude',
-                  'longitude','image_url','is_owner','attendees_count']
+                  'longitude','image_url','is_owner','attendees_count', 'is_attending']
         # 'creator' typically is set automatically from the request.user, so we might
         # not expose it as a writeable field here (depending on your logic).
 
     def create(self, validated_data):
         # The 'creator' should be the logged-in user, so we handle that in the view.
         return super().create(validated_data)
+    
+    def get_is_attending(self, obj):
+        user = self.context['request'].user
+        return user.is_authenticated and obj.attendees.filter(id=user.id).exists()
 
     def get_attendees_count(self, obj):
         return obj.attendees.count()

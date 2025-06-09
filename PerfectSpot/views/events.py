@@ -231,18 +231,25 @@ class RSVPEventView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        try:
-            event = Event.objects.get(pk=pk)
-        except Event.DoesNotExist:
-            return Response({"success": False, "message": "Event not found."}, status=404)
+        event = get_object_or_404(Event, pk=pk)
 
         if request.user in event.attendees.all():
             event.attendees.remove(request.user)
-            return Response({"success": True, "message": "You are no longer attending."}, status=200)
+            is_attending = False
+            message = "You are no longer attending."
         else:
             event.attendees.add(request.user)
-            return Response({"success": True, "message": "You are now attending!"}, status=200)
+            is_attending = True
+            message = "You are now attending!"
 
+        return Response({
+            "success": True,
+            "message": message,
+            "data": {
+                "attendees_count": event.attendees.count(),
+                "is_attending": is_attending,
+            }
+        }, status=200)
 
 class ReviewListView(generics.ListAPIView):
     serializer_class = ReviewSerializer
