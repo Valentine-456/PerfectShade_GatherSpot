@@ -12,6 +12,12 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from datetime import timedelta
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+load_dotenv()  # load from .env file at project root
+
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
