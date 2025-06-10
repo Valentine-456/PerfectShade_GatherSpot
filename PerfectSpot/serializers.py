@@ -37,13 +37,16 @@ class UserLoginSerializer(serializers.Serializer):
         return data
 
 class EventSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=False, allow_null=True)
+    image_url = serializers.URLField(required=False, allow_null=True)
     attendees_count = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField()
     is_attending = serializers.SerializerMethodField()
+
     class Meta:
         model = Event
         fields = ['id', 'title', 'description', 'location', 'date', 'is_promoted','latitude',
-                  'longitude','image_url','is_owner','attendees_count', 'is_attending']
+                  'longitude','image_url','is_owner','attendees_count', 'is_attending', 'image']
         # 'creator' typically is set automatically from the request.user, so we might
         # not expose it as a writeable field here (depending on your logic).
 

@@ -1,5 +1,6 @@
 from rest_framework import status, generics
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -19,6 +20,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 class CreateEventView(generics.GenericAPIView):
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]  # Must be logged in to create an event
+    parser_classes = [MultiPartParser, FormParser]
 
     # Allow unauthenticated GETs but require auth for anything else
     def get_permissions(self):
@@ -63,7 +65,7 @@ class CreateEventView(generics.GenericAPIView):
     )
     def post(self, request, *args, **kwargs):
         # The request.user will be the 'creator' of the event
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data,context={"request": request})
         if serializer.is_valid():
             event = serializer.save(creator=request.user)  # pass the creator
             return Response({
@@ -78,7 +80,10 @@ class CreateEventView(generics.GenericAPIView):
                     "longitude": event.longitude,
                     "image_url": event.image_url,
                     "date": event.date,
-                    "is_promoted": event.is_promoted
+                    "is_promoted": event.is_promoted,
+                    "image":        event.image.url if event.image else None,
+                    # Legacy URL field, if they used it:
+                    "image_url":    event.image_url,
                 }
             }, status=status.HTTP_201_CREATED)
 
@@ -156,6 +161,7 @@ class EditEventView(generics.GenericAPIView):
     serializer_class    = EventSerializer
     permission_classes  = [IsAuthenticated]
     queryset            = Event.objects.all()
+    parser_classes = [MultiPartParser, FormParser]
 
     @swagger_auto_schema(
         operation_description="Edit an existing event; partial update allowed.",

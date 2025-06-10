@@ -1,5 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from django.conf import settings
+from django.conf.urls.static import static
 
 from PerfectSpot.views.auth import RegisterView, LoginView, GoogleLoginView
 from PerfectSpot.views.events import (
@@ -40,4 +42,4 @@ urlpatterns = [
     path('users/<int:user_id>/profile/', UserProfileAPIView.as_view(), name='user-profile-api'),
 
     path('', include(router.urls)),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

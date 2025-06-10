@@ -47,6 +47,11 @@ class Event(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     image_url = models.URLField(max_length=500, null=True, blank=True)
+    image = models.ImageField(
+        upload_to="event_images/",
+        null=True,
+        blank=True
+    )
 
     attendees = models.ManyToManyField('CustomUser', blank=True, related_name='attending_events')
 
