@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from .models import CustomUser, Event, FriendRequest, Review
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-
+from .models import Notification
 
 User = get_user_model()
 
@@ -147,3 +147,12 @@ class FriendDataResponseSerializer(serializers.ModelSerializer):
 
     def get_events_count(self, obj):
         return obj.events.count()
+
+
+# New: turn Notification rows into JSON
+class NotificationSerializer(serializers.ModelSerializer):
+    event = EventSerializer(read_only=True)
+
+    class Meta:
+        model  = Notification
+        fields = ["id", "event", "link", "created_at", "is_read"]

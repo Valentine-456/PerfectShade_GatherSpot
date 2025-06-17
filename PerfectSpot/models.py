@@ -111,3 +111,19 @@ class FriendRequest(models.Model):
 
     def __str__(self):
         return f"{self.from_user} → {self.to_user}"
+
+
+# New: store event-invite notifications
+class Notification(models.Model):
+    recipient    = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications"
+    )
+    event        = models.ForeignKey(Event, on_delete=models.CASCADE)
+    link         = models.URLField()
+    created_at   = models.DateTimeField(auto_now_add=True)
+    is_read      = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Invite to {self.event.title} for {self.recipient.username}"

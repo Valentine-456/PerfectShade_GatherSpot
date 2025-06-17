@@ -1,17 +1,18 @@
-from rest_framework import status, generics
-from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
 from PerfectSpot.serializers import EventSerializer, ReviewSerializer
 from PerfectSpot.models import Event, Review
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from rest_framework_simplejwt.tokens import RefreshToken
 import stripe
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from ..models import Notification
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 from django.conf import settings
+
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -350,3 +351,19 @@ class ConfirmCheckoutView(APIView):
             return Response({"success": True, "message": "You are now attending!"})
         except Exception as e:
             return Response({"success": False, "error": str(e)}, status=400)
+
+class InviteEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        event    = get_object_or_404(Event, pk=pk)
+        user_ids = request.data.get("user_ids", [])
+        # Build a front-end link to the event
+        link = f"{settings.FRONTEND_URL}/events/{pk}"
+
+        for uid in user_ids:
+            user = get_user_model().objects.get(id=uid)
+            Notification.objects.create(
+                recipient=user, event=event, link=link
+            )
+        return Response({"sent_to": user_ids})

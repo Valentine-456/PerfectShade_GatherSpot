@@ -3,16 +3,18 @@ from rest_framework.routers import DefaultRouter
 from django.conf import settings
 from django.conf.urls.static import static
 
+
 from PerfectSpot.views.auth import RegisterView, LoginView, GoogleLoginView
 from PerfectSpot.views.events import (
     CreateEventView, DeleteEventView, RSVPEventView, EditEventView, PromoteEventView,
     ReviewCreateView, ReviewUpdateView, ReviewDestroyView, ReviewListView,
-    CreateStripeCheckoutSession, ConfirmCheckoutView  
+    CreateStripeCheckoutSession, ConfirmCheckoutView, InviteEventView
 )
 from PerfectSpot.views.friends import (
     FriendshipStatusView, UserProfileAPIView, my_friends, unfriend, FriendRequestViewSet
 )
 from PerfectSpot.views.user_search import UserSearchView
+from PerfectSpot.views.notification import NotificationListView
 
 router = DefaultRouter()
 router.register(r"friend-requests", FriendRequestViewSet, basename="friend-request")
@@ -24,6 +26,7 @@ urlpatterns = [
 
     path('events/<int:pk>/create-checkout-session/', CreateStripeCheckoutSession.as_view()),
     path('events/<int:pk>/confirm-checkout/', ConfirmCheckoutView.as_view()),
+    path('events/<int:pk>/invite/', InviteEventView.as_view(), name='invite_event'),
     path('events/<int:pk>/rsvp/', RSVPEventView.as_view(), name='rsvp-event'),
     path('events/<int:pk>/edit/', EditEventView.as_view(), name='edit_event'),
     path('events/<int:pk>/promote/', PromoteEventView.as_view(), name='promote_event'),
@@ -35,11 +38,13 @@ urlpatterns = [
     path('events/<int:pk>/', DeleteEventView.as_view(), name='delete_event'),
     path('google-signin/', GoogleLoginView.as_view(), name='google-signin'),
 
+
     path('users/<int:user_id>/friendship/', FriendshipStatusView.as_view(), name='friendship-status'),
     path('users/<int:user_id>/unfriend/', unfriend, name='unfriend'),
     path('me/friends/', my_friends, name='my-friends'),
     path('users/search/', UserSearchView.as_view(), name='user-search'),
     path('users/<int:user_id>/profile/', UserProfileAPIView.as_view(), name='user-profile-api'),
+    path('notifications/', NotificationListView.as_view(), name='notifications_list'),
 
     path('', include(router.urls)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
