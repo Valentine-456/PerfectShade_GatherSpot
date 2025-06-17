@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from django.conf import settings
 from django.conf.urls.static import static
-
+from .views.users        import UserListView
 
 from PerfectSpot.views.auth import RegisterView, LoginView, GoogleLoginView
 from PerfectSpot.views.events import (
@@ -37,7 +37,7 @@ urlpatterns = [
 
     path('events/<int:pk>/', DeleteEventView.as_view(), name='delete_event'),
     path('google-signin/', GoogleLoginView.as_view(), name='google-signin'),
-
+    path("users/",          UserListView.as_view(),         name="users_list"),
 
     path('users/<int:user_id>/friendship/', FriendshipStatusView.as_view(), name='friendship-status'),
     path('users/<int:user_id>/unfriend/', unfriend, name='unfriend'),

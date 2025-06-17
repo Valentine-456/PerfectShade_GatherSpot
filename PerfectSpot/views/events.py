@@ -359,7 +359,7 @@ class InviteEventView(APIView):
         event    = get_object_or_404(Event, pk=pk)
         user_ids = request.data.get("user_ids", [])
         # Build a front-end link to the event
-        link = f"{settings.FRONTEND_URL}/events/{pk}"
+        link = f"/events/{pk}/view"
 
         for uid in user_ids:
             user = get_user_model().objects.get(id=uid)

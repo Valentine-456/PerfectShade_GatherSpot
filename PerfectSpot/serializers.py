@@ -3,6 +3,7 @@ from .models import CustomUser, Event, FriendRequest, Review
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Notification
+from .models import CustomUser
 
 User = get_user_model()
 
@@ -156,3 +157,8 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Notification
         fields = ["id", "event", "link", "created_at", "is_read"]
+
+class CustomUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = CustomUser
+        fields = ["id", "username"]
